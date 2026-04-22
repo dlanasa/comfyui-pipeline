@@ -1,0 +1,16 @@
+{
+  "variations": [
+    {
+      "name": "medieval",
+      "prompt": "full body portrait of a woman, medieval knight armor, standing pose, dramatic lighting, photorealistic, 8k, sharp focus, clothed"
+    },
+    {
+      "name": "scifi",
+      "prompt": "full body portrait of a woman, futuristic space suit, standing pose, cinematic lighting, photorealistic, 8k, sharp focus, clothed"
+    },
+    {
+      "name": "street",
+      "prompt": "full body portrait of a woman, jeans leather jacket sunglasses, street style, standing pose, natural lighting, photorealistic, 8k, sharp focus, clothed"
+    }
+  ]
+}

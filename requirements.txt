@@ -1,0 +1,7 @@
+# Dev dependencies
+pyinstaller
+requests
+fastapi
+uvicorn
+pydantic
+tqdm
