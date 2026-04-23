@@ -7,7 +7,7 @@ import uuid
 import httpx
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 
-sys.path.append(r"D:\ComfyUI\_study")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from comfyui_api import generate_variation
 from logger import init_log, log_generation
 

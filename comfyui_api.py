@@ -26,6 +26,10 @@ def queue_prompt(workflow):
 
 
 def load_workflow(filepath):
+    # If relative path, look in same directory as this script
+    if not os.path.isabs(filepath):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, filepath)
     with open(filepath, "r") as f:
         return json.load(f)
 
