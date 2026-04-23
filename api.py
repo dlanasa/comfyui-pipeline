@@ -5,11 +5,18 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from fastapi.responses import FileResponse, HTMLResponse
+import json
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 # Import your existing pipeline functions
 sys.path.append(r"D:\ComfyUI\_study")
 from comfyui_api import generate_variation
 from logger import init_log, log_generation
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="ComfyUI Pipeline API")
 
@@ -34,26 +41,57 @@ def run_batch(job_id: str, request: GenerationRequest):
     """Run batch generation in the background"""
     jobs[job_id]["status"] = "running"
 
-    # Override the server in comfyui_api
     import comfyui_api
     comfyui_api.SERVER = request.server or COMFYUI_SERVER
 
-    # Create output folder
     os.makedirs(request.output_dir, exist_ok=True)
     init_log()
 
     for variation in request.variations:
         try:
+            # This generates the file but doesn't return the filename
             generate_variation(
                 request.workflow_path,
                 variation.name,
                 variation.prompt,
                 request.output_dir
             )
-            jobs[job_id]["results"].append({
-                "variation": variation.name,
-                "status": "success"
-            })
+
+            # NEW: Find the actual generated file
+            # List files in output_dir sorted by date, get the newest
+            files = sorted(
+                [f for f in os.listdir(request.output_dir) if f.endswith('.png')],
+                key=lambda f: os.path.getmtime(os.path.join(request.output_dir, f)),
+                reverse=True
+            )
+            actual_filename = files[0] if files else None
+
+            if actual_filename:
+                file_path = os.path.join(request.output_dir, actual_filename)
+                print(f"  Uploading to Drive: {file_path}")
+                print(f"  Folder ID: {os.getenv('GOOGLE_DRIVE_FOLDER_ID')}")
+
+                drive_link = upload_to_google_drive(
+                    file_path,
+                    os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
+                    actual_filename
+                )
+
+                print(f"  Drive link result: {drive_link}")
+
+                jobs[job_id]["results"].append({
+                    "variation": variation.name,
+                    "status": "success",
+                    "filename": actual_filename,
+                    "drive_link": drive_link
+                })
+            else:
+                jobs[job_id]["results"].append({
+                    "variation": variation.name,
+                    "status": "success",
+                    "filename": "unknown"
+                })
+
         except Exception as e:
             jobs[job_id]["errors"].append({
                 "variation": variation.name,
@@ -208,3 +246,65 @@ async def gallery(output_dir: str):
         </html>
         """
     return HTMLResponse(content=html)
+
+
+def get_drive_credentials():
+    """Load OAuth credentials"""
+    from google.auth.transport.requests import Request
+    from google.oauth2.service_account import Credentials
+
+    token_file = 'google_oauth_token.json'
+    creds = None
+
+    # Try to load existing token
+    if os.path.exists(token_file):
+        from google.oauth2.credentials import Credentials as OAuthCredentials
+        creds = OAuthCredentials.from_authorized_user_file(token_file, scopes=['https://www.googleapis.com/auth/drive'])
+
+    # If no token, do OAuth flow
+    if not creds or not creds.valid:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'google_oauth_credentials.json',
+            scopes=['https://www.googleapis.com/auth/drive']
+        )
+        creds = flow.run_local_server(port=0)
+
+        # Save token for next time
+        with open(token_file, 'w') as token:
+            token.write(creds.to_json())
+
+    return creds
+
+
+def upload_to_google_drive(file_path, folder_id, filename):
+    """Upload image to Google Drive folder and return shareable link"""
+    try:
+        credentials = get_drive_credentials()
+        service = build('drive', 'v3', credentials=credentials)
+
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+
+        media = MediaFileUpload(file_path, mimetype='image/png')
+
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+
+        # Make file publicly viewable
+        service.permissions().create(
+            fileId=file['id'],
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+
+        return file['webViewLink']
+    except Exception as e:
+        print(f"Error uploading to Drive: {e}")
+        return None
+
+
