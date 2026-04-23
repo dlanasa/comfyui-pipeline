@@ -19,12 +19,13 @@ def load_variations(filepath):
     return [(v["name"], v["prompt"]) for v in data["variations"]]
 
 
+NGROK_HEADERS = {"ngrok-skip-browser-warning": "true"}
+
 def queue_prompt(workflow):
     payload = {"prompt": workflow}
     print(f"  Queuing prompt to: {SERVER}")
-    response = requests.post(f"{SERVER}/prompt", json=payload)
+    response = requests.post(f"{SERVER}/prompt", json=payload, headers=NGROK_HEADERS)
     print(f"  Response status: {response.status_code}")
-    print(f"  Response text: {response.text[:200]}")
     return response.json()
 
 
@@ -40,7 +41,7 @@ def wait_for_completion(prompt_id):
     print("  Waiting for generation...")
     attempts = 0
     while True:
-        response = requests.get(f"{SERVER}/history/{prompt_id}")
+        response = requests.get(f"{SERVER}/history/{prompt_id}", headers=NGROK_HEADERS)
         history = response.json()
         attempts += 1
 
