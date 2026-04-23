@@ -5,10 +5,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from fastapi.responses import FileResponse, HTMLResponse
-import json
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+# import json
+# from google.oauth2.service_account import Credentials
+# from googleapiclient.discovery import build
+# from googleapiclient.http import MediaFileUpload
 
 # Import your existing pipeline functions
 sys.path.append(r"D:\ComfyUI\_study")
@@ -49,37 +49,21 @@ def run_batch(job_id: str, request: GenerationRequest):
 
     for variation in request.variations:
         try:
-            # Generate and get back the filename
-            actual_filename = generate_variation(
+            result = generate_variation(
                 request.workflow_path,
                 variation.name,
                 variation.prompt,
                 request.output_dir
             )
 
-            print(f"  Returned filename: {actual_filename}")
-
-            if actual_filename:
-                file_path = os.path.join(request.output_dir, actual_filename)
-                print(f"  Uploading to Drive: {file_path}")
-                print(f"  Folder ID: {os.getenv('GOOGLE_DRIVE_FOLDER_ID')}")
-
-                drive_link = upload_to_google_drive(
-                    file_path,
-                    os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
-                    actual_filename
-                )
-
-                print(f"  Drive link result: {drive_link}")
-
+            if result and result.get("filename"):
                 jobs[job_id]["results"].append({
                     "variation": variation.name,
                     "status": "success",
-                    "filename": actual_filename,
-                    "drive_link": drive_link
+                    "filename": result["filename"],
+                    "drive_link": result.get("drive_link")
                 })
             else:
-                print(f"  ERROR: No filename returned!")
                 jobs[job_id]["results"].append({
                     "variation": variation.name,
                     "status": "error",
@@ -240,69 +224,3 @@ async def gallery(output_dir: str):
         </html>
         """
     return HTMLResponse(content=html)
-
-
-def get_drive_credentials():
-    """Load OAuth token from env var or file"""
-    from google.oauth2.credentials import Credentials as OAuthCredentials
-
-    # Try env var first (Railway)
-    token_json = os.getenv("GOOGLE_OAUTH_TOKEN")
-    if token_json:
-        print(f"  Loading token from env var")
-        return OAuthCredentials.from_authorized_user_info(
-            json.loads(token_json),
-            scopes=['https://www.googleapis.com/auth/drive']
-        )
-
-    # Try local file (development)
-    if os.path.exists('google_oauth_token.json'):
-        print(f"  Loading token from file")
-        return OAuthCredentials.from_authorized_user_file(
-            'google_oauth_token.json',
-            scopes=['https://www.googleapis.com/auth/drive']
-        )
-
-    raise ValueError("No OAuth token found!")
-
-
-def upload_to_google_drive(file_path, folder_id, filename):
-    """Upload image to Google Drive folder and return shareable link"""
-    try:
-        print(f"    [DEBUG] Getting credentials...")
-        credentials = get_drive_credentials()
-        print(f"    [DEBUG] Building Drive service...")
-        service = build('drive', 'v3', credentials=credentials)
-
-        file_metadata = {
-            'name': filename,
-            'parents': [folder_id]
-        }
-
-        print(f"    [DEBUG] Reading file: {file_path}")
-        media = MediaFileUpload(file_path, mimetype='image/png')
-
-        print(f"    [DEBUG] Creating file on Drive...")
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink'
-        ).execute()
-
-        print(f"    [DEBUG] File created: {file['id']}")
-
-        # Make file publicly viewable
-        print(f"    [DEBUG] Setting permissions...")
-        service.permissions().create(
-            fileId=file['id'],
-            body={'type': 'anyone', 'role': 'reader'}
-        ).execute()
-
-        print(f"    [DEBUG] Success! Link: {file['webViewLink']}")
-        return file['webViewLink']
-    except Exception as e:
-        print(f"    [DEBUG] Error uploading to Drive: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
