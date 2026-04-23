@@ -131,22 +131,36 @@ async def proxy_download(filename: str, server: str = "http://127.0.0.1:8188"):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+
 @app.get("/gallery")
-async def gallery(server: str = "http://127.0.0.1:8188", output_dir: str = r"D:\ComfyUI\_study\output"):
+async def gallery(server: str = "http://127.0.0.1:8188"):
     import urllib.parse
 
-    if not os.path.exists(output_dir):
-        # On Railway - list files not possible, show message
-        return HTMLResponse("<h2>Running on Railway - use local gallery instead</h2>")
+    # Get file list from ComfyUI via HTTP (works locally AND via ngrok on Railway)
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{server}/object_info")
+            # Get file listing from ComfyUI's history endpoint
+            history_response = await client.get(f"{server}/history")
+            history = history_response.json()
+    except Exception as e:
+        return HTMLResponse(f"<h2>Could not connect to ComfyUI at {server}: {e}</h2>")
 
-    files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
+    # Extract all generated filenames from history
+    files = []
+    for prompt_id, entry in history.items():
+        outputs = entry.get("outputs", {})
+        if "18" in outputs and "images" in outputs["18"]:
+            for img in outputs["18"]["images"]:
+                if img["filename"] not in files:
+                    files.append(img["filename"])
+
     files = sorted(files, reverse=True)
 
     image_tags = ""
     for filename in files:
-        # Use server URL for images (works via ngrok on Railway)
         view_url = f"{server}/view?filename={filename}&subfolder=&type=output"
-        download_url = f"/proxy-download/{filename}?server={server}"
+        download_url = f"/proxy-download/{filename}?server={urllib.parse.quote(server)}"
         image_tags += f"""
             <div class="card">
                 <img src="{view_url}" alt="{filename}"/>
@@ -179,7 +193,7 @@ async def gallery(server: str = "http://127.0.0.1:8188", output_dir: str = r"D:\
         <h1>ComfyUI Pipeline Gallery</h1>
         <p class="subtitle">{len(files)} images found</p>
         <div class="grid">
-            {image_tags if image_tags else "<p>No images in folder.</p>"}
+            {image_tags if image_tags else "<p>No images found.</p>"}
         </div>
     </body>
     </html>
