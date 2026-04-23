@@ -77,32 +77,20 @@ def generate_variation(workflow_path, variation_name, prompt, save_dir):
     print(f"\nGenerating: {variation_name}")
     start_time = time.time()
 
-    # Load fresh copy of workflow each time
     workflow = load_workflow(workflow_path)
-
-    # Update the prompt and randomize seed
     seed = random.randint(0, 999999999999999)
     workflow = set_prompt(workflow, prompt, seed)
 
-    # Queue it
     result = queue_prompt(workflow)
     prompt_id = result["prompt_id"]
     print(f"  Prompt ID: {prompt_id}")
 
-    # Wait for completion and get filename
     filename = wait_for_completion(prompt_id)
     print(f"  Generated: {filename}")
 
-    # Copy to variations folder with descriptive name
-    src = os.path.join(save_dir, filename)
-    dst = os.path.join(save_dir, f"{variation_name}.png")
-    shutil.copy(src, dst)
-
-    # Log it
     duration = time.time() - start_time
     log_generation(variation_name, prompt, seed, filename, duration)
-    print(f"  Done in {duration:.1f}s — saved to {dst}")
-
+    print(f"  Done in {duration:.1f}s")
 
 # --- Main ---
 if __name__ == "__main__":
