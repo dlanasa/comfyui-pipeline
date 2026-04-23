@@ -5,7 +5,7 @@ import time
 response = requests.post('https://comfyui-pipeline-production.up.railway.app/generate', json={
     'workflow_path': 'workflow.json',
     'output_dir': r'D:\ComfyUI\_study\output',
-    'server': 'https://6f2c-172-251-166-164.ngrok-free.app',
+    'server': 'https://20d6-172-251-166-164.ngrok-free.app',
     'variations': [
         {'name': 'test_railway_drive',
          'prompt': 'full body portrait of a woman, blue dress, standing pose, photorealistic, 8k, sharp focus, clothed'}
@@ -31,7 +31,7 @@ while True:
             print(f"Errors: {status['errors']}")
         print(f"\n🖼️  View gallery at:")
         print(
-            f"https://comfyui-pipeline-production.up.railway.app/gallery?server=https://6f2c-172-251-166-164.ngrok-free.app")
+            f"https://comfyui-pipeline-production.up.railway.app/gallery?server=https://20d6-172-251-166-164.ngrok-free.app")
         break
 
     print("  Waiting 2 seconds...\n")

@@ -122,18 +122,16 @@ async def view(filename: str, output_dir: str = r"D:\ComfyUI\_study\output"):
 
 @app.get("/proxy-download/{filename}")
 async def proxy_download(filename: str, server: str = "http://127.0.0.1:8188"):
-
     url = f"{server}/view?filename={filename}&subfolder=&type=output"
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
+        response = await client.get(url, headers={"ngrok-skip-browser-warning": "true"})
 
     return StreamingResponse(
         iter([response.content]),
         media_type="image/png",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
-
 
 @app.post("/refresh")
 async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "http://127.0.0.1:8188"):
@@ -196,7 +194,7 @@ async def gallery(server: str = "http://127.0.0.1:8188"):
 
     image_tags = ""
     for filename in files:
-        view_url = f"{server}/view?filename={filename}&subfolder=&type=output"
+        view_url = f"/proxy-download/{filename}?server={urllib.parse.quote(server)}"
         download_url = f"/proxy-download/{filename}?server={urllib.parse.quote(server)}"
         image_tags += f"""
             <div class="card">
