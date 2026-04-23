@@ -13,7 +13,7 @@ global SERVER
 #ComfyUI server address
 SERVER = "http://127.0.0.1:8188"
 # this is tied to the bat file  that comfyUI is started with
-OUTPUT_DIR = r"D:\ComfyUI\_study\output"
+#OUTPUT_DIR = r"D:\ComfyUI\_study\output"
 
 
 def load_variations(filepath):
@@ -94,7 +94,7 @@ def generate_variation(workflow_path, variation_name, prompt, save_dir):
     print(f"  Generated: {filename}")
 
     # Copy to variations folder with descriptive name
-    src = os.path.join(OUTPUT_DIR, filename)
+    src = os.path.join(save_dir, filename)
     dst = os.path.join(save_dir, f"{variation_name}.png")
     shutil.copy(src, dst)
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ComfyUI batch generator")
     parser.add_argument("--workflow", required=True, help="Path to API workflow JSON")
     parser.add_argument("--variations", required=True, help="Path to variations JSON file")
-    parser.add_argument("--output", required=True, help="Output directory for named images")
+    parser.add_argument("--output", default=r'D:\ComfyUI\_study\output', required=True, help="Output directory for named images")
     parser.add_argument("--server", default="http://127.0.0.1:8188", help="ComfyUI server URL")
     args = parser.parse_args()
 
