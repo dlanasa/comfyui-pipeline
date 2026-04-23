@@ -21,3 +21,6 @@ variations/
 # Windows
 Thumbs.db
 desktop.ini
+
+#google credentials
+google_credentials.json
