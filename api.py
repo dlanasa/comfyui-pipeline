@@ -58,16 +58,30 @@ def run_batch(job_id: str, request: GenerationRequest):
             )
 
             # NEW: Find the actual generated file
+            print(f"  Looking for PNG files in: {request.output_dir}")
+
             # List files in output_dir sorted by date, get the newest
-            files = sorted(
-                [f for f in os.listdir(request.output_dir) if f.endswith('.png')],
-                key=lambda f: os.path.getmtime(os.path.join(request.output_dir, f)),
-                reverse=True
-            )
-            actual_filename = files[0] if files else None
+            all_files = os.listdir(request.output_dir)
+            print(f"  All files in directory: {all_files}")
+
+            png_files = [f for f in all_files if f.endswith('.png')]
+            print(f"  PNG files found: {png_files}")
+
+            if png_files:
+                files = sorted(
+                    png_files,
+                    key=lambda f: os.path.getmtime(os.path.join(request.output_dir, f)),
+                    reverse=True
+                )
+                actual_filename = files[0]
+                print(f"  Most recent file: {actual_filename}")
+            else:
+                actual_filename = None
+                print(f"  No PNG files found!")
 
             if actual_filename:
                 file_path = os.path.join(request.output_dir, actual_filename)
+                print(f"  File exists: {os.path.exists(file_path)}")
                 print(f"  Uploading to Drive: {file_path}")
                 print(f"  Folder ID: {os.getenv('GOOGLE_DRIVE_FOLDER_ID')}")
 
