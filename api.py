@@ -258,14 +258,16 @@ def get_drive_credentials():
     if not creds or not creds.valid:
         from google_auth_oauthlib.flow import InstalledAppFlow
 
-        # Try env var first, then file
         creds_json = os.getenv("GOOGLE_CREDENTIALS")
+
         if creds_json:
+            # Load from env var (Railway)
             flow = InstalledAppFlow.from_client_config(
                 json.loads(creds_json),
                 scopes=['https://www.googleapis.com/auth/drive']
             )
         else:
+            # Load from file (local)
             flow = InstalledAppFlow.from_client_secrets_file(
                 'google_oauth_credentials.json',
                 scopes=['https://www.googleapis.com/auth/drive']
@@ -273,7 +275,7 @@ def get_drive_credentials():
 
         creds = flow.run_local_server(port=0)
 
-        # Save token for next time
+        # Save token
         with open(token_file, 'w') as token:
             token.write(creds.to_json())
 
