@@ -21,7 +21,10 @@ def load_variations(filepath):
 
 def queue_prompt(workflow):
     payload = {"prompt": workflow}
+    print(f"  Queuing prompt to: {SERVER}")
     response = requests.post(f"{SERVER}/prompt", json=payload)
+    print(f"  Response status: {response.status_code}")
+    print(f"  Response text: {response.text[:200]}")
     return response.json()
 
 
