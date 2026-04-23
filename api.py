@@ -269,7 +269,9 @@ def get_drive_credentials():
 def upload_to_google_drive(file_path, folder_id, filename):
     """Upload image to Google Drive folder and return shareable link"""
     try:
+        print(f"    [DEBUG] Getting credentials...")
         credentials = get_drive_credentials()
+        print(f"    [DEBUG] Building Drive service...")
         service = build('drive', 'v3', credentials=credentials)
 
         file_metadata = {
@@ -277,23 +279,30 @@ def upload_to_google_drive(file_path, folder_id, filename):
             'parents': [folder_id]
         }
 
+        print(f"    [DEBUG] Reading file: {file_path}")
         media = MediaFileUpload(file_path, mimetype='image/png')
 
+        print(f"    [DEBUG] Creating file on Drive...")
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink'
         ).execute()
 
+        print(f"    [DEBUG] File created: {file['id']}")
+
         # Make file publicly viewable
+        print(f"    [DEBUG] Setting permissions...")
         service.permissions().create(
             fileId=file['id'],
             body={'type': 'anyone', 'role': 'reader'}
         ).execute()
 
+        print(f"    [DEBUG] Success! Link: {file['webViewLink']}")
         return file['webViewLink']
     except Exception as e:
-        print(f"Error uploading to Drive: {e}")
+        print(f"    [DEBUG] Error uploading to Drive: {e}")
+        import traceback
+        traceback.print_exc()
         return None
-
 
