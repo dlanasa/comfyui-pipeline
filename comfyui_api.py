@@ -33,7 +33,6 @@ def load_workflow(filepath):
     with open(filepath, "r") as f:
         return json.load(f)
 
-
 def wait_for_completion(prompt_id):
     print("  Waiting for generation...")
     attempts = 0
@@ -72,6 +71,9 @@ def set_prompt(workflow, positive_text, seed):
 
 
 def generate_variation(workflow_path, variation_name, prompt, save_dir, comfyui_server):
+    global SERVER
+    SERVER = comfyui_server  # ADD THIS LINE
+
     print(f"\nGenerating: {variation_name}")
     start_time = time.time()
 

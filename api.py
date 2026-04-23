@@ -19,6 +19,9 @@ jobs = {}
 
 COMFYUI_SERVER = os.getenv("COMFYUI_SERVER", "http://127.0.0.1:8188")
 
+# Persistent image store (survives job restarts but not uvicorn restarts)
+image_store = []
+
 class VariationItem(BaseModel):
     name: str
     prompt: str
@@ -132,28 +135,62 @@ async def proxy_download(filename: str, server: str = "http://127.0.0.1:8188"):
     )
 
 
+@app.post("/refresh")
+async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "http://127.0.0.1:8188"):
+    """Scan output folder and register all images"""
+    global image_store
+
+    if not os.path.exists(output_dir):
+        return {"error": "Output directory not found"}
+
+    files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
+    image_store = [{"filename": f, "server": server} for f in files]
+
+    return {"message": f"Registered {len(files)} images", "count": len(files)}
+
+
+# Persistent image store - add this near the top of api.py with other globals
+image_store = []
+
+
+@app.post("/refresh")
+async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "http://127.0.0.1:8188"):
+    """Scan output folder and register all images"""
+    global image_store
+
+    if not os.path.exists(output_dir):
+        return {"error": "Output directory not found"}
+
+    files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
+    image_store = [{"filename": f, "server": server} for f in files]
+
+    return {"message": f"Registered {len(files)} images", "count": len(files)}
+
+
 @app.get("/gallery")
 async def gallery(server: str = "http://127.0.0.1:8188"):
-    import urllib.parse
-
     # Get file list from ComfyUI via HTTP (works locally AND via ngrok on Railway)
+    files = []
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{server}/object_info")
-            # Get file listing from ComfyUI's history endpoint
             history_response = await client.get(f"{server}/history")
             history = history_response.json()
-    except Exception as e:
-        return HTMLResponse(f"<h2>Could not connect to ComfyUI at {server}: {e}</h2>")
 
-    # Extract all generated filenames from history
-    files = []
-    for prompt_id, entry in history.items():
-        outputs = entry.get("outputs", {})
-        if "18" in outputs and "images" in outputs["18"]:
-            for img in outputs["18"]["images"]:
-                if img["filename"] not in files:
-                    files.append(img["filename"])
+        # Extract all generated filenames from history
+        for prompt_id, entry in history.items():
+            outputs = entry.get("outputs", {})
+            if "18" in outputs and "images" in outputs["18"]:
+                for img in outputs["18"]["images"]:
+                    if img["filename"] not in files:
+                        files.append(img["filename"])
+
+    except Exception as e:
+        print(f"  Could not get history from ComfyUI: {e}")
+
+    # Fall back to image_store if history is empty
+    if not files and image_store:
+        print(f"  Using image_store fallback: {len(image_store)} images")
+        files = [img["filename"] for img in image_store]
 
     files = sorted(files, reverse=True)
 
@@ -193,10 +230,9 @@ async def gallery(server: str = "http://127.0.0.1:8188"):
         <h1>ComfyUI Pipeline Gallery</h1>
         <p class="subtitle">{len(files)} images found</p>
         <div class="grid">
-            {image_tags if image_tags else "<p>No images found.</p>"}
+            {image_tags if image_tags else "<p>No images found. Run /refresh to load existing images.</p>"}
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
-
