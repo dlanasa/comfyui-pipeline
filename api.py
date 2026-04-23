@@ -1,19 +1,18 @@
 import sys
 import os
-from fastapi import FastAPI, BackgroundTasks
-from pydantic import BaseModel
-from typing import List, Optional
 import uuid
 import httpx
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from comfyui_api import generate_variation
-from logger import init_log, log_generation
-
 import comfyui_api
 import urllib.parse
 
+from fastapi import FastAPI, BackgroundTasks
+from pydantic import BaseModel
+from typing import List, Optional
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from comfyui_api import generate_variation
+from logger import init_log, log_generation
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 app = FastAPI(title="ComfyUI Pipeline API")
 
 jobs = {}
