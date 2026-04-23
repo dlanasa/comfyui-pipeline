@@ -16,6 +16,8 @@ app = FastAPI(title="ComfyUI Pipeline API")
 # In-memory job tracking
 jobs = {}
 
+COMFYUI_SERVER = os.getenv("COMFYUI_SERVER", "http://127.0.0.1:8188")
+
 # Request schema
 class VariationItem(BaseModel):
     name: str
@@ -34,7 +36,7 @@ def run_batch(job_id: str, request: GenerationRequest):
 
     # Override the server in comfyui_api
     import comfyui_api
-    comfyui_api.SERVER = request.server
+    comfyui_api.SERVER = request.server or COMFYUI_SERVER
 
     # Create output folder
     os.makedirs(request.output_dir, exist_ok=True)
