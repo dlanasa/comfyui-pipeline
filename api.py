@@ -6,6 +6,7 @@ import comfyui_api
 import urllib.parse
 
 from fastapi import FastAPI, BackgroundTasks
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import List, Optional
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -13,7 +14,18 @@ from comfyui_api import generate_variation
 from logger import init_log, log_generation
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-app = FastAPI(title="ComfyUI Pipeline API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    output_dir = r"D:\ComfyUI\_study\output"
+    if os.path.exists(output_dir):
+        files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
+        image_store.extend([{"filename": f} for f in files])
+        print(f"  Auto-loaded {len(files)} images from {output_dir}")
+    else:
+        print(f"  Output dir not found: {output_dir}")
+    yield
+
+app = FastAPI(title="ComfyUI Pipeline API", lifespan=lifespan)
 
 jobs = {}
 
@@ -186,9 +198,11 @@ async def gallery(server: str = "http://127.0.0.1:8188"):
         print(f"  Could not get history from ComfyUI: {e}")
 
     # Fall back to image_store if history is empty
-    if not files and image_store:
-        print(f"  Using image_store fallback: {len(image_store)} images")
-        files = [img["filename"] for img in image_store]
+    # Add image_store files that aren't already in history
+    history_files = set(files)
+    for img in image_store:
+        if img["filename"] not in history_files:
+            files.append(img["filename"])
 
     files = sorted(files, reverse=True)
 
