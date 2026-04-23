@@ -162,6 +162,11 @@ async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "
 # Persistent image store - add this near the top of api.py with other globals
 image_store = []
 
+@app.post("/register-images")
+async def register_images(filenames: List[str], server: str = "http://127.0.0.1:8188"):
+    global image_store
+    image_store = [{"filename": f, "server": server} for f in filenames]
+    return {"message": f"Registered {len(filenames)} images", "count": len(filenames)}
 
 @app.post("/refresh")
 async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "http://127.0.0.1:8188"):
