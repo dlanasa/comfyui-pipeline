@@ -199,3 +199,4 @@ async def gallery(server: str = "http://127.0.0.1:8188"):
     </html>
     """
     return HTMLResponse(content=html)
+
