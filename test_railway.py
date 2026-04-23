@@ -29,6 +29,9 @@ while True:
         print(f"Results: {status['results']}")
         if status['errors']:
             print(f"Errors: {status['errors']}")
+        print(f"\n🖼️  View gallery at:")
+        print(
+            f"https://comfyui-pipeline-production.up.railway.app/gallery?server=https://6f2c-172-251-166-164.ngrok-free.app")
         break
 
     print("  Waiting 2 seconds...\n")

@@ -21,11 +21,3 @@ variations/
 # Windows
 Thumbs.db
 desktop.ini
-
-#google credentials
-google_credentials.json
-google_oauth_credentials.json
-google_oauth_token.json
-
-#environment variable
-.env

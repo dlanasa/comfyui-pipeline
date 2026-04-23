@@ -32,6 +32,8 @@ while True:
         print(f"Results: {status['results']}")
         if status['errors']:
             print(f"Errors: {status['errors']}")
+        print(f"\n🖼️  View gallery at:")
+        print(f"http://127.0.0.1:8000/gallery?server=http://127.0.0.1:8188")
         break
 
     print("  Waiting 2 seconds...\n")
