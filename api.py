@@ -243,43 +243,27 @@ async def gallery(output_dir: str):
 
 
 def get_drive_credentials():
-    """Load OAuth credentials from env var or file"""
-    from google.auth.transport.requests import Request
+    """Load OAuth token from env var or file"""
     from google.oauth2.credentials import Credentials as OAuthCredentials
 
-    token_file = 'google_oauth_token.json'
-    creds = None
+    # Try env var first (Railway)
+    token_json = os.getenv("GOOGLE_OAUTH_TOKEN")
+    if token_json:
+        print(f"  Loading token from env var")
+        return OAuthCredentials.from_authorized_user_info(
+            json.loads(token_json),
+            scopes=['https://www.googleapis.com/auth/drive']
+        )
 
-    # Try to load existing token
-    if os.path.exists(token_file):
-        creds = OAuthCredentials.from_authorized_user_file(token_file, scopes=['https://www.googleapis.com/auth/drive'])
+    # Try local file (development)
+    if os.path.exists('google_oauth_token.json'):
+        print(f"  Loading token from file")
+        return OAuthCredentials.from_authorized_user_file(
+            'google_oauth_token.json',
+            scopes=['https://www.googleapis.com/auth/drive']
+        )
 
-    # If no token, do OAuth flow
-    if not creds or not creds.valid:
-        from google_auth_oauthlib.flow import InstalledAppFlow
-
-        creds_json = os.getenv("GOOGLE_CREDENTIALS")
-
-        if creds_json:
-            # Load from env var (Railway)
-            flow = InstalledAppFlow.from_client_config(
-                json.loads(creds_json),
-                scopes=['https://www.googleapis.com/auth/drive']
-            )
-        else:
-            # Load from file (local)
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'google_oauth_credentials.json',
-                scopes=['https://www.googleapis.com/auth/drive']
-            )
-
-        creds = flow.run_local_server(port=0)
-
-        # Save token
-        with open(token_file, 'w') as token:
-            token.write(creds.to_json())
-
-    return creds
+    raise ValueError("No OAuth token found!")
 
 
 def upload_to_google_drive(file_path, folder_id, filename):
