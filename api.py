@@ -243,25 +243,34 @@ async def gallery(output_dir: str):
 
 
 def get_drive_credentials():
-    """Load OAuth credentials"""
+    """Load OAuth credentials from env var or file"""
     from google.auth.transport.requests import Request
-    from google.oauth2.service_account import Credentials
+    from google.oauth2.credentials import Credentials as OAuthCredentials
 
     token_file = 'google_oauth_token.json'
     creds = None
 
     # Try to load existing token
     if os.path.exists(token_file):
-        from google.oauth2.credentials import Credentials as OAuthCredentials
         creds = OAuthCredentials.from_authorized_user_file(token_file, scopes=['https://www.googleapis.com/auth/drive'])
 
     # If no token, do OAuth flow
     if not creds or not creds.valid:
         from google_auth_oauthlib.flow import InstalledAppFlow
-        flow = InstalledAppFlow.from_client_secrets_file(
-            'google_oauth_credentials.json',
-            scopes=['https://www.googleapis.com/auth/drive']
-        )
+
+        # Try env var first, then file
+        creds_json = os.getenv("GOOGLE_CREDENTIALS")
+        if creds_json:
+            flow = InstalledAppFlow.from_client_config(
+                json.loads(creds_json),
+                scopes=['https://www.googleapis.com/auth/drive']
+            )
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'google_oauth_credentials.json',
+                scopes=['https://www.googleapis.com/auth/drive']
+            )
+
         creds = flow.run_local_server(port=0)
 
         # Save token for next time
