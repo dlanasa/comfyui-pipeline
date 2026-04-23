@@ -49,39 +49,18 @@ def run_batch(job_id: str, request: GenerationRequest):
 
     for variation in request.variations:
         try:
-            # This generates the file but doesn't return the filename
-            generate_variation(
+            # Generate and get back the filename
+            actual_filename = generate_variation(
                 request.workflow_path,
                 variation.name,
                 variation.prompt,
                 request.output_dir
             )
 
-            # NEW: Find the actual generated file
-            print(f"  Looking for PNG files in: {request.output_dir}")
-
-            # List files in output_dir sorted by date, get the newest
-            all_files = os.listdir(request.output_dir)
-            print(f"  All files in directory: {all_files}")
-
-            png_files = [f for f in all_files if f.endswith('.png')]
-            print(f"  PNG files found: {png_files}")
-
-            if png_files:
-                files = sorted(
-                    png_files,
-                    key=lambda f: os.path.getmtime(os.path.join(request.output_dir, f)),
-                    reverse=True
-                )
-                actual_filename = files[0]
-                print(f"  Most recent file: {actual_filename}")
-            else:
-                actual_filename = None
-                print(f"  No PNG files found!")
+            print(f"  Returned filename: {actual_filename}")
 
             if actual_filename:
                 file_path = os.path.join(request.output_dir, actual_filename)
-                print(f"  File exists: {os.path.exists(file_path)}")
                 print(f"  Uploading to Drive: {file_path}")
                 print(f"  Folder ID: {os.getenv('GOOGLE_DRIVE_FOLDER_ID')}")
 
@@ -100,9 +79,10 @@ def run_batch(job_id: str, request: GenerationRequest):
                     "drive_link": drive_link
                 })
             else:
+                print(f"  ERROR: No filename returned!")
                 jobs[job_id]["results"].append({
                     "variation": variation.name,
-                    "status": "success",
+                    "status": "error",
                     "filename": "unknown"
                 })
 
