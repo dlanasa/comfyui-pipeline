@@ -133,12 +133,15 @@ else:
 
 # Update Railway
 print("🔄 Updating Railway COMFYUI_SERVER...")
-# After update_railway_ngrok succeeds
 if update_railway_ngrok(NGROK_URL):
     print("✅ Railway updated!")
+    print("⏳ Waiting for Railway to redeploy... (60 seconds)")
+    time.sleep(60)
+    print("🔄 Registering images with Railway gallery...")
     register_images_with_railway(NGROK_URL)
 else:
     print("⚠️  Railway not updated — continuing anyway")
+    register_images_with_railway(NGROK_URL)
 
 print()
 print("=" * 50)
