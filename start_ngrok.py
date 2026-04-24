@@ -143,6 +143,7 @@ else:
     print("⚠️  Railway not updated — continuing anyway")
     register_images_with_railway(NGROK_URL)
 
+
 print()
 print("=" * 50)
 print("✅ ngrok ready!")

@@ -53,6 +53,15 @@ while True:
         print(f"Results: {status['results']}")
         if status['errors']:
             print(f"Errors: {status['errors']}")
+
+        # Refresh gallery from ComfyUI history — no local file access needed
+        print("\n🔄 Refreshing gallery from ComfyUI history...")
+        refresh_response = requests.post(
+            f'{RAILWAY_URL}/refresh-from-history',
+            params={'server': COMFYUI_SERVER}
+        )
+        print(f"Gallery: {refresh_response.json()}")
+
         print(f"\n🖼️  View gallery at:")
         print(f"{RAILWAY_URL}/gallery?server={COMFYUI_SERVER}")
         break

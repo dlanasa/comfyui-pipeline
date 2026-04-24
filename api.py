@@ -195,6 +195,17 @@ async def refresh_from_history(server: str = "http://127.0.0.1:8188"):
 # Persistent image store - add this near the top of api.py with other globals
 image_store = []
 
+@app.get("/list-local-images")
+async def list_local_images(output_dir: str = r"D:\ComfyUI\_study\output"):
+    """List all PNG files in local output directory — only works when running locally"""
+    try:
+        if not os.path.exists(output_dir):
+            return {"files": [], "error": "Directory not found"}
+        files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
+        return {"files": files, "count": len(files)}
+    except Exception as e:
+        return {"files": [], "error": str(e)}
+
 @app.post("/register-images")
 async def register_images(filenames: List[str], server: str = "http://127.0.0.1:8188"):
     global image_store
