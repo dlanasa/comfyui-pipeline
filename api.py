@@ -165,6 +165,33 @@ async def refresh(output_dir: str = r"D:\ComfyUI\_study\output", server: str = "
     return {"message": f"Registered {len(files)} images", "count": len(files)}
 
 
+@app.post("/refresh-from-history")
+async def refresh_from_history(server: str = "http://127.0.0.1:8188"):
+    """Fetch image list from ComfyUI history and register with gallery"""
+    global image_store
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{server}/history",
+                headers={"ngrok-skip-browser-warning": "true"}
+            )
+            history = response.json()
+
+        files = []
+        for prompt_id, entry in history.items():
+            outputs = entry.get("outputs", {})
+            if "18" in outputs and "images" in outputs["18"]:
+                for img in outputs["18"]["images"]:
+                    if img["filename"] not in files:
+                        files.append(img["filename"])
+
+        image_store = [{"filename": f, "server": server} for f in sorted(files, reverse=True)]
+        return {"message": f"Registered {len(files)} images from history", "count": len(files)}
+
+    except Exception as e:
+        return {"error": str(e)}
+
 # Persistent image store - add this near the top of api.py with other globals
 image_store = []
 
