@@ -41,7 +41,7 @@ class VariationItem(BaseModel):
 class GenerationRequest(BaseModel):
     workflow_path: str
     variations: List[VariationItem]
-    output_dir: str
+    output_dir: Optional[str] = ""
     server: Optional[str] = "http://127.0.0.1:8188"
 
 def run_batch(job_id: str, request: GenerationRequest):
@@ -49,7 +49,10 @@ def run_batch(job_id: str, request: GenerationRequest):
     jobs[job_id]["status"] = "running"
     comfyui_api.SERVER = request.server or COMFYUI_SERVER
 
-    os.makedirs(request.output_dir, exist_ok=True)
+    # Only create output dir if one was specified
+    if request.output_dir:
+        os.makedirs(request.output_dir, exist_ok=True)
+
     init_log()
 
     for variation in request.variations:

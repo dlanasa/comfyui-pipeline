@@ -18,7 +18,9 @@ print("🔍 Getting current ComfyUI server from Railway...")
 COMFYUI_SERVER = get_comfyui_server()
 
 if not COMFYUI_SERVER:
-    print("❌ Could not get ComfyUI server URL. GPU owner may not be online.")
+    print("❌ Could not get ComfyUI server URL.")
+    print("   GPU owner needs to run start_comfyui.py and start_ngrok.py first.")
+    input("Press Enter to exit...")
     exit(1)
 
 print(f"✅ ComfyUI server: {COMFYUI_SERVER}\n")
@@ -57,3 +59,5 @@ while True:
 
     print("  Waiting 2 seconds...\n")
     time.sleep(2)
+
+input("\nPress Enter to exit...")
