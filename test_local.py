@@ -1,6 +1,41 @@
 import requests
 import time
 
+
+def check_uvicorn():
+    """Check if uvicorn is running before proceeding"""
+    try:
+        response = requests.get('http://127.0.0.1:8000/health', timeout=3)
+        if response.status_code == 200:
+            print("✅ uvicorn is running")
+            return True
+    except:
+        pass
+    print("❌ uvicorn is not running!")
+    print("   Start it with: python start_uvicorn.py")
+    input("Press Enter to exit...")
+    exit(1)
+
+
+def check_comfyui():
+    """Check if ComfyUI is running"""
+    try:
+        response = requests.get('http://127.0.0.1:8188/system_stats', timeout=3)
+        if response.status_code == 200:
+            print("✅ ComfyUI is running")
+            return True
+    except:
+        pass
+    print("❌ ComfyUI is not running!")
+    print("   Start it with: python start_comfyui.py")
+    input("Press Enter to exit...")
+    exit(1)
+
+
+# Check services are running
+check_uvicorn()
+check_comfyui()
+
 # Submit generation job
 response = requests.post('http://127.0.0.1:8000/generate', json={
     'workflow_path': 'workflow.json',

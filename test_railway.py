@@ -8,6 +8,19 @@ load_dotenv()
 RAILWAY_URL = 'https://comfyui-pipeline-production.up.railway.app'
 OUTPUT_DIR = r'D:\ComfyUI\_study\output'
 
+def check_uvicorn():
+    """Check if uvicorn is running before proceeding"""
+    try:
+        response = requests.get('http://127.0.0.1:8000/health', timeout=3)
+        if response.status_code == 200:
+            print("✅ uvicorn is running")
+            return True
+    except:
+        pass
+    print("❌ uvicorn is not running!")
+    print("   Start it with: python start_uvicorn.py")
+    input("Press Enter to exit...")
+    exit(1)
 
 def get_ngrok_url():
     """Auto-detect current ngrok tunnel URL via local ngrok API"""
@@ -68,6 +81,8 @@ if not os.path.exists(OUTPUT_DIR):
     print(f"📁 Created output directory: {OUTPUT_DIR}")
 else:
     print(f"📁 Output directory: {OUTPUT_DIR}")
+
+check_uvicorn()
 
 # Auto-detect ngrok URL
 NGROK_URL = get_ngrok_url()
