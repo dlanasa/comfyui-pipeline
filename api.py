@@ -85,7 +85,10 @@ def run_batch(job_id: str, request: GenerationRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "comfyui_server": COMFYUI_SERVER
+    }
 
 @app.post("/generate")
 async def generate(request: GenerationRequest, background_tasks: BackgroundTasks):

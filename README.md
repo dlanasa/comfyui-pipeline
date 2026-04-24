@@ -9,22 +9,22 @@ Generates costume/look variations of a character from a reference pose using Con
 ## Architecture
 
 ```
-Internet User
-    ↓
-https://comfyui-pipeline-production.up.railway.app  (FastAPI on Railway)
-    ↓ HTTP via ngrok tunnel
-Your Local Machine  (ComfyUI + RTX A6000)
-    ↓
-Generated Images served back via ngrok
+Remote User / Internet
+    ↓ HTTPS
+Railway Cloud (FastAPI Service — runs 24/7)
+    ↓ HTTPS via ngrok tunnel
+GPU Machine — local computer running ComfyUI + ngrok
+    ↓ GPU inference (RTX A6000)
+Generated images served back via ngrok → Railway → User
 ```
 
-The FastAPI service runs in a Docker container on Railway. ComfyUI runs locally on a GPU machine. ngrok creates a secure tunnel between them. The ngrok URL is auto-detected at runtime via the ngrok local API — no manual URL updates needed.
+The FastAPI service runs in a Docker container on Railway. ComfyUI runs locally on a GPU machine. ngrok creates a secure tunnel between them. `start_ngrok.py` automatically starts ngrok and updates Railway with the current URL — no manual configuration needed.
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Service health check |
+| `/health` | GET | Service health check + current ComfyUI server URL |
 | `/generate` | POST | Submit batch generation job |
 | `/status/{job_id}` | GET | Poll job status |
 | `/gallery` | GET | Browse generated images |
@@ -39,91 +39,103 @@ The FastAPI service runs in a Docker container on Railway. ComfyUI runs locally 
 - **FastAPI** — Async HTTP API with Pydantic validation
 - **Docker** — Containerized deployment
 - **Railway** — Cloud deployment platform
-- **ngrok** — Local-to-cloud tunnel (URL auto-detected via ngrok API)
+- **ngrok** — Local-to-cloud tunnel (auto-started and auto-updated)
 - **GitHub** — Auto-deploy on push to main
 
-## Quick Start
+## For GPU Owner — Local Development
 
-### Prerequisites
-- Python 3.11
-- ComfyUI installed with RTX GPU
-- ngrok account
-- Railway account
-
-### Local Development (no ngrok needed)
-
-1. Clone the repo:
-```bash
-git clone https://github.com/dlanasa/comfyui-pipeline.git
-cd comfyui-pipeline
-```
-
-2. Create virtual environment:
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-3. Start services (2 terminals):
 ```bash
 # Terminal 1 - ComfyUI
-D:\ComfyUI\run_nvidia_gpu_study.bat
+python start_comfyui.py
 
-# Terminal 2 - FastAPI
-uvicorn api:app --reload --port 8000
-```
+# Terminal 2 - local FastAPI
+python start_uvicorn.py
 
-4. Test:
-```bash
+# Terminal 3 - test
 python test_local.py
 ```
 
-5. View gallery:
-```
-http://127.0.0.1:8000/gallery?server=http://127.0.0.1:8188
-```
+Gallery: `http://127.0.0.1:8000/gallery?server=http://127.0.0.1:8188`
 
-### Railway Testing (ngrok required)
+Force restart if needed: `python start_uvicorn.py --restart`
 
-1. Start ComfyUI and ngrok:
+## For GPU Owner — Railway Testing
+
 ```bash
-# Terminal 1
-D:\ComfyUI\run_nvidia_gpu_study.bat
+# Terminal 1 - ComfyUI
+python start_comfyui.py
 
-# Terminal 2
-D:\ngrok\ngrok.exe http 8188
-```
+# Terminal 2 - ngrok (auto-updates Railway)
+python start_ngrok.py
 
-2. Run test — ngrok URL is auto-detected, no manual update needed:
-```bash
+# Terminal 3 - test
 python test_railway.py
 ```
 
-3. Gallery URL is printed automatically when generation completes.
+Force restart ngrok if needed: `python start_ngrok.py --restart`
 
-## Environment Variables (Railway)
+## For Remote Users
 
+No setup needed. GPU owner must have ComfyUI and ngrok running.
+
+```bash
+python test_remote.py
+```
+
+Or use the interactive API docs:
+```
+https://comfyui-pipeline-production.up.railway.app/docs
+```
+
+## Environment Variables
+
+### Railway Dashboard
 | Variable | Description |
 |----------|-------------|
-| `COMFYUI_SERVER` | Default ComfyUI server URL fallback |
+| `COMFYUI_SERVER` | Auto-updated by start_ngrok.py — never set manually |
+
+### Local .env file (never commit to GitHub)
+| Variable | Description |
+|----------|-------------|
+| `RAILWAY_TOKEN` | Railway API token |
+| `RAILWAY_PROJECT_ID` | Railway project ID |
+| `RAILWAY_ENVIRONMENT_ID` | Railway environment ID |
+| `RAILWAY_SERVICE_ID` | Railway service ID |
 
 ## Project Structure
 
 ```
 comfyui-pipeline/
-├── api.py              # FastAPI service - routes, job tracking, gallery
-├── comfyui_api.py      # ComfyUI orchestration - workflow, generation, polling
-├── logger.py           # CSV audit logging
-├── workflow.json       # ComfyUI API-format workflow (ControlNet OpenPose)
-├── variations.json     # Batch generation prompts config
-├── test_local.py       # Local testing script (localhost only, no ngrok)
-├── test_railway.py     # Railway testing script (auto-detects ngrok URL)
-├── Dockerfile          # Container definition
-├── requirements.txt    # Python dependencies
-└── .gitignore          # Excludes secrets and local paths
+├── api.py               # FastAPI service
+├── comfyui_api.py       # ComfyUI orchestration
+├── logger.py            # CSV audit logging
+├── workflow.json        # ComfyUI API-format workflow
+├── variations.json      # Batch generation prompts
+├── start_comfyui.py     # Starts ComfyUI (GPU machine only)
+├── start_ngrok.py       # Starts ngrok + auto-updates Railway
+├── start_uvicorn.py     # Starts local FastAPI (dev only)
+├── test_local.py        # Local development testing
+├── test_railway.py      # Railway testing (GPU machine)
+├── test_remote.py       # Remote user testing script
+├── Dockerfile           # Container definition
+├── requirements.txt     # Python dependencies
+└── .gitignore           # Excludes secrets and local paths
 ```
 
 ## License
 
 MIT
+
+## Building test_railway.exe
+
+To build a standalone exe that anyone on the GPU machine can double-click:
+
+1. Copy `build_test_railway_exe.bat` to `D:\ComfyUI\_study\`
+2. Double-click it in Windows Explorer
+3. Output: `dist\test_railway.exe`
+
+The exe:
+- Auto-detects ngrok URL via local ngrok API
+- Auto-creates `D:\ComfyUI\_study\output\` if it doesn't exist
+- Pauses at the end so you can read the output
+- Requires ComfyUI and ngrok to be running first

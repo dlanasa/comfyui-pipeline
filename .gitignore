@@ -21,3 +21,5 @@ variations/
 # Windows
 Thumbs.db
 desktop.ini
+
+*.spec
