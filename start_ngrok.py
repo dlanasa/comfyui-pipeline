@@ -15,6 +15,27 @@ parser.add_argument('--restart', action='store_true', help='Kill existing ngrok 
 args = parser.parse_args()
 
 
+def register_images_with_railway(ngrok_url):
+    """Push local image list to Railway after ngrok starts"""
+    output_dir = r'D:\ComfyUI\_study\output'
+
+    if not os.path.exists(output_dir):
+        print("  Output directory not found — skipping image registration")
+        return
+
+    local_files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
+
+    try:
+        response = requests.post(
+            f'{RAILWAY_URL}/register-images',
+            params={'server': ngrok_url},
+            json=local_files
+        )
+        result = response.json()
+        print(f"✅ Registered {result.get('count', 0)} images with Railway gallery")
+    except Exception as e:
+        print(f"⚠️  Could not register images: {e}")
+
 def kill_ngrok():
     """Kill any running ngrok processes"""
     try:
@@ -112,8 +133,10 @@ else:
 
 # Update Railway
 print("🔄 Updating Railway COMFYUI_SERVER...")
+# After update_railway_ngrok succeeds
 if update_railway_ngrok(NGROK_URL):
     print("✅ Railway updated!")
+    register_images_with_railway(NGROK_URL)
 else:
     print("⚠️  Railway not updated — continuing anyway")
 
