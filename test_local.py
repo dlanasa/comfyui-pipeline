@@ -4,13 +4,14 @@ import time
 
 def check_uvicorn():
     """Check if uvicorn is running before proceeding"""
-    try:
-        response = requests.get('http://127.0.0.1:8000/health', timeout=3)
-        if response.status_code == 200:
-            print("✅ uvicorn is running")
-            return True
-    except:
-        pass
+    for i in range(3):
+        try:
+            response = requests.get('http://127.0.0.1:8000/health', timeout=3)
+            if response.status_code == 200:
+                print("✅ uvicorn is running")
+                return True
+        except:
+            time.sleep(1)
     print("❌ uvicorn is not running!")
     print("   Start it with: python start_uvicorn.py")
     input("Press Enter to exit...")

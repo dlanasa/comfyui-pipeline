@@ -10,15 +10,44 @@ OUTPUT_DIR = r'D:\ComfyUI\_study\output'
 
 def check_uvicorn():
     """Check if uvicorn is running before proceeding"""
+    for i in range(3):
+        try:
+            response = requests.get('http://127.0.0.1:8000/health', timeout=3)
+            if response.status_code == 200:
+                print("✅ uvicorn is running")
+                return True
+        except:
+            time.sleep(1)
+    print("❌ uvicorn is not running!")
+    print("   Start it with: python start_uvicorn.py")
+    input("Press Enter to exit...")
+    exit(1)
+
+def check_ngrok():
+    """Check if ngrok is running"""
     try:
-        response = requests.get('http://127.0.0.1:8000/health', timeout=3)
+        response = requests.get('http://127.0.0.1:4040/api/tunnels', timeout=3)
         if response.status_code == 200:
-            print("✅ uvicorn is running")
+            print("✅ ngrok is running")
             return True
     except:
         pass
-    print("❌ uvicorn is not running!")
-    print("   Start it with: python start_uvicorn.py")
+    print("❌ ngrok is not running!")
+    print("   Start it with: python start_ngrok.py")
+    input("Press Enter to exit...")
+    exit(1)
+
+def check_comfyui():
+    """Check if ComfyUI is running"""
+    try:
+        response = requests.get('http://127.0.0.1:8188/system_stats', timeout=3)
+        if response.status_code == 200:
+            print("✅ ComfyUI is running")
+            return True
+    except:
+        pass
+    print("❌ ComfyUI is not running!")
+    print("   Start it with: python start_comfyui.py")
     input("Press Enter to exit...")
     exit(1)
 
@@ -74,6 +103,9 @@ def update_railway_ngrok(ngrok_url):
         return False
     return True
 
+# --- checks ---
+check_ngrok()
+check_comfyui()
 
 # Auto-create output directory if it doesn't exist
 if not os.path.exists(OUTPUT_DIR):

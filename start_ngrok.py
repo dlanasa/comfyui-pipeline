@@ -136,7 +136,7 @@ print("🔄 Updating Railway COMFYUI_SERVER...")
 if update_railway_ngrok(NGROK_URL):
     print("✅ Railway updated!")
     print("⏳ Waiting for Railway to redeploy... (60 seconds)")
-    time.sleep(60)
+    time.sleep(180)
     print("🔄 Registering images with Railway gallery...")
     register_images_with_railway(NGROK_URL)
 else:
