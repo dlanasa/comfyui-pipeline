@@ -8,20 +8,6 @@ load_dotenv()
 RAILWAY_URL = 'https://comfyui-pipeline-production.up.railway.app'
 OUTPUT_DIR = r'D:\ComfyUI\_study\output'
 
-def check_uvicorn():
-    """Check if uvicorn is running before proceeding"""
-    for i in range(3):
-        try:
-            response = requests.get('http://127.0.0.1:8000/health', timeout=3)
-            if response.status_code == 200:
-                print("✅ uvicorn is running")
-                return True
-        except:
-            time.sleep(1)
-    print("❌ uvicorn is not running!")
-    print("   Start it with: python start_uvicorn.py")
-    input("Press Enter to exit...")
-    exit(1)
 
 def check_ngrok():
     """Check if ngrok is running"""
@@ -37,6 +23,7 @@ def check_ngrok():
     input("Press Enter to exit...")
     exit(1)
 
+
 def check_comfyui():
     """Check if ComfyUI is running"""
     try:
@@ -51,6 +38,7 @@ def check_comfyui():
     input("Press Enter to exit...")
     exit(1)
 
+
 def get_ngrok_url():
     """Auto-detect current ngrok tunnel URL via local ngrok API"""
     try:
@@ -64,45 +52,6 @@ def get_ngrok_url():
     return None
 
 
-def update_railway_ngrok(ngrok_url):
-    """Update COMFYUI_SERVER on Railway with current ngrok URL"""
-    token = os.getenv("RAILWAY_TOKEN")
-    project_id = os.getenv("RAILWAY_PROJECT_ID")
-    environment_id = os.getenv("RAILWAY_ENVIRONMENT_ID")
-    service_id = os.getenv("RAILWAY_SERVICE_ID")
-
-    if not all([token, project_id, environment_id, service_id]):
-        print("⚠️  Railway credentials not found in .env — skipping Railway update")
-        return False
-
-    query = """
-    mutation variableUpsert($input: VariableUpsertInput!) {
-        variableUpsert(input: $input)
-    }
-    """
-    variables = {
-        "input": {
-            "projectId": project_id,
-            "environmentId": environment_id,
-            "serviceId": service_id,
-            "name": "COMFYUI_SERVER",
-            "value": ngrok_url
-        }
-    }
-    response = requests.post(
-        "https://backboard.railway.app/graphql/v2",
-        json={"query": query, "variables": variables},
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-    )
-    result = response.json()
-    if "errors" in result:
-        print(f"⚠️  Railway update failed: {result['errors']}")
-        return False
-    return True
-
 # --- checks ---
 check_ngrok()
 check_comfyui()
@@ -114,8 +63,6 @@ if not os.path.exists(OUTPUT_DIR):
 else:
     print(f"📁 Output directory: {OUTPUT_DIR}")
 
-check_uvicorn()
-
 # Auto-detect ngrok URL
 NGROK_URL = get_ngrok_url()
 if not NGROK_URL:
@@ -123,15 +70,7 @@ if not NGROK_URL:
     input("Press Enter to exit...")
     exit(1)
 
-print(f"✅ ngrok URL detected: {NGROK_URL}")
-
-# Update Railway
-print("🔄 Updating Railway COMFYUI_SERVER...")
-if update_railway_ngrok(NGROK_URL):
-    print("✅ Railway updated!")
-else:
-    print("⚠️  Railway not updated — continuing anyway")
-print()
+print(f"✅ ngrok URL detected: {NGROK_URL}\n")
 
 # Submit generation job
 response = requests.post(f'{RAILWAY_URL}/generate', json={

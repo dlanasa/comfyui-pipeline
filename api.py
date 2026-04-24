@@ -14,15 +14,40 @@ from comfyui_api import generate_variation
 from logger import init_log, log_generation
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Auto-load from local folder (works locally)
     output_dir = r"D:\ComfyUI\_study\output"
     if os.path.exists(output_dir):
         files = sorted([f for f in os.listdir(output_dir) if f.endswith('.png')], reverse=True)
         image_store.extend([{"filename": f} for f in files])
-        print(f"  Auto-loaded {len(files)} images from {output_dir}")
-    else:
-        print(f"  Output dir not found: {output_dir}")
+        print(f"  Auto-loaded {len(files)} images from local folder")
+
+    # Auto-load from ComfyUI history via COMFYUI_SERVER env var (works on Railway)
+    comfyui = os.getenv("COMFYUI_SERVER")
+    if comfyui:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{comfyui}/history",
+                    headers={"ngrok-skip-browser-warning": "true"},
+                    timeout=10
+                )
+                history = response.json()
+            existing = [f["filename"] for f in image_store]
+            new_files = []
+            for prompt_id, entry in history.items():
+                outputs = entry.get("outputs", {})
+                if "18" in outputs and "images" in outputs["18"]:
+                    for img in outputs["18"]["images"]:
+                        if img["filename"] not in existing:
+                            new_files.append(img["filename"])
+            image_store.extend([{"filename": f, "server": comfyui} for f in new_files])
+            print(f"  Auto-loaded {len(new_files)} images from ComfyUI history")
+        except Exception as e:
+            print(f"  Could not load from ComfyUI history: {e}")
+
     yield
 
 app = FastAPI(title="ComfyUI Pipeline API", lifespan=lifespan)

@@ -36,6 +36,25 @@ def register_images_with_railway(ngrok_url):
     except Exception as e:
         print(f"⚠️  Could not register images: {e}")
 
+
+def wait_for_railway_ready(timeout=300):
+    """Wait for Railway to finish redeploying"""
+    print("⏳ Waiting for Railway to come back online...")
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            response = requests.get(f'{RAILWAY_URL}/health', timeout=5)
+            if response.status_code == 200:
+                print(f"✅ Railway is back online! ({int(time.time()-start)}s)")
+                return True
+        except:
+            pass
+        time.sleep(5)
+        print(f"  Still waiting... ({int(time.time()-start)}s)")
+    print("⚠️  Railway did not come back online within timeout")
+    return False
+
+
 def kill_ngrok():
     """Kill any running ngrok processes"""
     try:
@@ -131,18 +150,16 @@ else:
         exit(1)
     print(f"✅ ngrok started: {NGROK_URL}")
 
-# Update Railway
+# Update Railway and wait for redeploy
 print("🔄 Updating Railway COMFYUI_SERVER...")
 if update_railway_ngrok(NGROK_URL):
     print("✅ Railway updated!")
-    print("⏳ Waiting for Railway to redeploy... (60 seconds)")
-    time.sleep(180)
+    wait_for_railway_ready()
     print("🔄 Registering images with Railway gallery...")
     register_images_with_railway(NGROK_URL)
 else:
     print("⚠️  Railway not updated — continuing anyway")
     register_images_with_railway(NGROK_URL)
-
 
 print()
 print("=" * 50)
@@ -157,14 +174,25 @@ print("Keep this terminal open to keep ngrok running.")
 print("Press Ctrl+C to stop.  |  Restart: python start_ngrok.py --restart")
 
 try:
+    counter = 0
     while True:
         time.sleep(60)
+        counter += 1
+
+        # Re-register ALL local images every 10 minutes
+        if counter % 10 == 0:
+            print("🔄 Re-registering images with Railway...")
+            register_images_with_railway(NGROK_URL)
+
+        # Check ngrok is still running
         url = get_ngrok_url()
         if not url:
             print("⚠️  ngrok stopped! Restarting...")
             NGROK_URL = start_ngrok()
             if NGROK_URL:
                 update_railway_ngrok(NGROK_URL)
+                wait_for_railway_ready()
+                register_images_with_railway(NGROK_URL)
                 print(f"✅ ngrok restarted: {NGROK_URL}")
 except KeyboardInterrupt:
     print("\n👋 ngrok stopped.")
